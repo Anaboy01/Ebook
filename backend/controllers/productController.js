@@ -1,120 +1,96 @@
-const Product = require("../models/productModel");
 const asyncHandler = require("express-async-handler");
+const Ebook = require("../models/ebookModel");
 
-// Create Product (Admin Only)
-const createProduct = asyncHandler(async (req, res) => {
-  const { title, description, price, image } = req.body;
+// Create Ebook (Admin Only)
+const createEbook = asyncHandler(async (req, res) => {
+  const { id, name, overview, long_description, price, poster, size, best_seller, in_stock, rating } = req.body;
 
-  if (!title || !description || !price) {
+  if (!id || !name || !price) {
     res.status(400);
-    throw new Error("Title, description, and price are required.");
+    throw new Error("ID, name, and price are required.");
   }
 
-  const newProduct = new Product({
-    title,
-    description,
+  // Only admin can set rating
+  const ebookData = {
+    id,
+    name,
+    overview,
+    long_description,
     price,
-    image,
-  });
+    poster,
+    size,
+    best_seller,
+    in_stock,
+  };
 
-  const savedProduct = await newProduct.save();
-  res.status(201).json(savedProduct);
+  if (req.user.isAdmin) {
+    ebookData.rating = rating || 0;
+  }
+
+  const newEbook = new Ebook(ebookData);
+  const savedEbook = await newEbook.save();
+  res.status(201).json(savedEbook);
 });
 
-// Edit Product (Admin Only)
-const editProduct = asyncHandler(async (req, res) => {
-  const updatedProduct = await Product.findByIdAndUpdate(
+// Update Ebook (Admin Only)
+const updateEbook = asyncHandler(async (req, res) => {
+  const ebook = await Ebook.findById(req.params.id);
+  if (!ebook) {
+    res.status(404);
+    throw new Error("Ebook not found.");
+  }
+
+  // Only admin can update rating
+  if (!req.user.isAdmin && req.body.rating !== undefined) {
+    res.status(403);
+    throw new Error("Not authorized to update rating.");
+  }
+
+  const updatedEbook = await Ebook.findByIdAndUpdate(
     req.params.id,
     { $set: req.body },
     { new: true }
   );
 
-  if (!updatedProduct) {
-    res.status(404);
-    throw new Error("Product not found.");
-  }
-
-  res.status(200).json(updatedProduct);
+  res.status(200).json(updatedEbook);
 });
 
-// Delete Product (Admin Only)
-const deleteProduct = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id);
-
-  if (!product) {
+// Delete Ebook (Admin Only)
+const deleteEbook = asyncHandler(async (req, res) => {
+  const ebook = await Ebook.findById(req.params.id);
+  if (!ebook) {
     res.status(404);
-    throw new Error("Product not found.");
+    throw new Error("Ebook not found.");
   }
 
-  await product.deleteOne();
-  res.status(200).json({ message: "Product deleted successfully." });
+  await ebook.deleteOne();
+  res.status(200).json({ message: "Ebook deleted successfully." });
 });
 
-// Purchase Product
-const purchaseProduct = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id);
-
-  if (!product) {
-    res.status(404);
-    throw new Error("Product not found.");
-  }
-
-  product.purchases += 1;
-  await product.save();
-
-  res.status(200).json({ message: "Product purchased successfully." });
-});
-
-// Rate Product
-const rateProduct = asyncHandler(async (req, res) => {
-  const { rating } = req.body;
-
-  if (!rating || rating < 1 || rating > 5) {
-    res.status(400);
-    throw new Error("Rating must be between 1 and 5.");
-  }
-
-  const product = await Product.findById(req.params.id);
-
-  if (!product) {
-    res.status(404);
-    throw new Error("Product not found.");
-  }
-
-  const totalRating = product.ratings.average * product.ratings.count;
-  product.ratings.count += 1;
-  product.ratings.average = (totalRating + rating) / product.ratings.count;
-
-  await product.save();
-
-  res.status(200).json({
-    message: "Product rated successfully.",
-    ratings: product.ratings,
-  });
+// Get All Ebooks
+const getAllEbooks = asyncHandler(async (req, res) => {
+  const ebooks = await Ebook.find();
+  res.status(200).json(ebooks);
 });
 
 // Get Best Sellers
 const getBestSellers = asyncHandler(async (req, res) => {
-  const products = await Product.find({ purchases: { $gt: 0 } })
-    .sort({ purchases: -1 })
-    .limit(10);
-
-  res.status(200).json(products);
+  const ebooks = await Ebook.find({ best_seller: true }).sort({ rating: -1 });
+  res.status(200).json(ebooks);
 });
 
-// Get All Products
-const getAllProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find();
-
-  res.status(200).json(products);
+// Get Instock
+const getInStockEbooks = asyncHandler(async (req, res) => {
+  const ebooks = await Ebook.find({ in_stock: true });
+  res.status(200).json(ebooks);
 });
+
 
 module.exports = {
-  createProduct,
-  editProduct,
-  deleteProduct,
-  purchaseProduct,
-  rateProduct,
+  createEbook,
+  updateEbook,
+  deleteEbook,
+  getAllEbooks,
   getBestSellers,
-  getAllProducts,
+  getInStockEbooks
 };
