@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const eBookSchema = mongoose.Schema({
+const ebookSchema = mongoose.Schema({
     id: {
         type: Number,
         required: true,
@@ -36,4 +36,4 @@ const eBookSchema = mongoose.Schema({
 
 })
 
-module.exports = mongoose.model('EBook', userSchema);
+module.exports = mongoose.model('EBook', ebookSchema);

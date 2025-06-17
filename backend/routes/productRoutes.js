@@ -1,24 +1,14 @@
 const express = require("express");
+const { protect, adminProtect } = require("../middleware/authMiddleware");
+const ebookController = require("../controllers/productController");
+
 const router = express.Router();
-const {
-  createProduct,
-  editProduct,
-  deleteProduct,
-  purchaseProduct,
-  rateProduct,
-  getBestSellers,
-  getAllProducts
-} = require("../controllers/productController");
 
-const { adminProtect, protect } = require("../middleware/authMiddleware");
-
-router.get("/best-sellers", getBestSellers);
-router.post("/:id/purchase", protect, purchaseProduct);
-router.post("/:id/rate", protect, rateProduct);
-
-router.post("/create", adminProtect, createProduct);
-router.put("/:id/edit", adminProtect, editProduct);
-router.delete("/:id", adminProtect, deleteProduct);
-router.get('/', getAllProducts);
+router.post("/create", protect, adminProtect, ebookController.createEbook);
+router.put("/:id", protect, adminProtect, ebookController.updateEbook);
+router.delete("/:id", protect, adminProtect, ebookController.deleteEbook);
+router.get("/", ebookController.getAllEbooks);
+router.get("/best-sellers", ebookController.getBestSellers);
+router.get("/in-stock", ebookController.getInStockEbooks);
 
 module.exports = router;
